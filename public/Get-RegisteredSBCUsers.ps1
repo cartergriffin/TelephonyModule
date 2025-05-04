@@ -1,4 +1,7 @@
 function Get-RegisteredSBCUsers {
+    param (
+        [string]$basicUserFilter
+    )
 
     $config = Get-TelephonyModuleConfig
     $uri = "http://$($config.sbcIp)/api/v1/actions/authToken"
@@ -25,7 +28,9 @@ function Get-RegisteredSBCUsers {
 
     $decodedPage = [System.Net.WebUtility]::HtmlDecode($page.Content)
     $split = $decodedPage.Split('<td class="TDbg" WIDTH="30%">')
-    $regexMatch = "^<sip:(\+1928523\d{1,4})@(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    # basic user filter to pull users out assuming first 6 phone digits are same
+    # and last 4 are unique.
+    $regexMatch = "^<sip:(\$basicUserFilter\d{1,4})@(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
     $parsed = [System.Collections.Generic.List[object]]::new()
 
     foreach ($line in $split) {
