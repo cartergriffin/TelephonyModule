@@ -1,4 +1,7 @@
 function Get-AudiocodesATATrunkGroupAssignments {
+    param(
+        [string]$phoneRegex
+    )
     # using function defined in ~\public\Get-AudioCodesIniAsObjects.ps1. Gets ini from
     # devices and returns one object per ini line containing deviceIP + full line
     $allIniLines = Get-AudioCodesIniAsObjects
@@ -89,19 +92,24 @@ function Get-AudiocodesATATrunkGroupAssignments {
                     $trunkGroupIndex = $matches[1]
                     $phoneNumExtracted = $attrList[4].Trim('"')
 
-                    # only get phone number matches that could be active in teams
-                    if ($phoneNumExtracted -match "\+1928523\d{4}") {
-                        $trunkGroupOutput.Add(
-                            [PSCustomObject]@{
-                                DeviceIP = $deviceIP
-                                TrunkGroupIndex = $trunkGroupIndex
-                                telephoneNumber = $phoneNumExtracted
-                                TrunkGroupId = $attrList[0]
-                                BChannelPort = $attrlist[2]
-                                FXSModule = $attrList[7]
-                                FullLine = $line
-                            }    
-                        )
+                    $stdOut = [PSCustomObject]@{
+                        DeviceIP = $deviceIP
+                        TrunkGroupIndex = $trunkGroupIndex
+                        telephoneNumber = $phoneNumExtracted
+                        TrunkGroupId = $attrList[0]
+                        BChannelPort = $attrlist[2]
+                        FXSModule = $attrList[7]
+                        FullLine = $line
+                    }
+
+                    # if filter passed, filter
+                    if ($phoneRegex) {
+                        if ($phoneNumExtracted -match $phoneRegex) {
+                            $trunkGroupOutput.Add($stdOut)
+                        }
+                    # if not, return all trunk group rows as output
+                    } else {
+                        $trunkGroupOutput.Add($stdOut)
                     }
                 }
             }

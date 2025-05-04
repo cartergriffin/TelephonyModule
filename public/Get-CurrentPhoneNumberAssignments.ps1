@@ -13,6 +13,7 @@ function Get-CurrentPhoneNumberAssignments {
             break
         }
     }
+
     $yesterDayCsvDir = Get-ChildItem -path $outputDirPath
     $csvSorted = $yesterDayCsvDir | sort-object -Property LastWriteTime -Descending
     $csvPath = $csvSorted[0].FullName
@@ -76,7 +77,7 @@ function Get-CurrentPhoneNumberAssignments {
         $null = $existingTns.Add($entry.telephoneNumber)
     }
     #$dupes = [System.Collections.Generic.List[object]]::new()
-    $analogNumbers = Get-AudiocodesATATrunkGroupAssignments
+    $analogNumbers = Get-AudiocodesATATrunkGroupAssignments -phoneRegex "\+1928523\d{4}"
     foreach ($analog in $analogNumbers) {
         $tn = $analog.telephoneNumber
         $yesterdayTn = $tnToYesterday["$tn"]

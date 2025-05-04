@@ -36,7 +36,7 @@ function Get-GraphCertToken {
     $cert = Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object { $_.Subject -match "CN=$($config.certSubject)" }
 
     if (-not $cert) {
-        throw "Certificate not found. Make sure 'acdc-callrecord.pfx' is imported to Cert:\CurrentUser\My"
+        throw "Certificate not found. Make sure '$($config.certSubject).pfx' is imported to Cert:\CurrentUser\My"
     }
 
     # Config
