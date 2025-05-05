@@ -1,6 +1,9 @@
 # requires yesterday's results
 # might need to refactor this to allow for init
 function Get-CurrentPhoneNumberAssignments {
+    param(
+        [switch]$singleRecurringOutputCsv
+    )
 
     $config = Get-TelephonyModuleConfig
     $outputDirPath = $config.currentPhoneCsvPath
@@ -8,15 +11,21 @@ function Get-CurrentPhoneNumberAssignments {
     if (-not $checkPath) {
         try {
             mkdir $config.currentPhoneCsvPath
+            mkdir "$outputDirPath\currentPhoneOutput"
         } catch {
             throw "unable to write new dir at $outputDirPath"
             break
         }
     }
 
-    $yesterDayCsvDir = Get-ChildItem -path $outputDirPath
-    $csvSorted = $yesterDayCsvDir | sort-object -Property LastWriteTime -Descending
-    $csvPath = $csvSorted[0].FullName
+    if ($singleRecurringOutputCsv) {
+        $csvPath = "$outputDirPath\currentPhoneOutput\CurrentPhoneNumberAssignments_DoNotModifyOrLeaveOpen.csv"
+    } else {
+        $yesterDayCsvDir = Get-ChildItem -path "$outputDirPath\*.csv"
+        $csvSorted = $yesterDayCsvDir | sort-object -Property LastWriteTime -Descending
+        $csvPath = $csvSorted[0].FullName
+    }
+
     $yesterDayCsv = Import-Csv -path $csvPath
 
     # init empty dictionary to enable fast lookup of yesterdayCsv by tn
@@ -138,6 +147,13 @@ function Get-CurrentPhoneNumberAssignments {
         }
     }
     $changes | Export-Csv -Append -Path "$outputDirPath\Phone_Assignment_Changelog.csv"
-    $sortedNumbers | export-csv -Path "$outputDirPath\CurrentPhoneNumberAssignments_$filedate.csv" -NoTypeInformation
-    return  $sortedNumbers
+    
+    if ($singleRecurringOutputCsv) {
+        $sortedNumbers | export-csv -Path "$outputDirPath\currentPhoneOutput\CurrentPhoneNumberAssignments_DoNotModifyOrLeaveOpen.csv" -NoTypeInformation
+        $sortedNumbers | export-csv -Path "$outputDirPath\CurrentPhoneNumberAssignments_$filedate.csv" -NoTypeInformation
+    } else {
+        $sortedNumbers | export-csv -Path "$outputDirPath\CurrentPhoneNumberAssignments_$filedate.csv" -NoTypeInformation
+    }
+    
+    return $sortedNumbers
 }
