@@ -1,5 +1,7 @@
 function Get-RegisteredSBCUsers {
+    [Cmdletbinding()]
     param (
+        [Parameter(Mandatory)]
         [string]$basicUserFilter
     )
 
