@@ -1,6 +1,6 @@
 function Get-AudiocodesATATrunkGroupAssignments {
     param(
-        [string]$phoneRegex
+        [string]$phoneFilter
     )
     # using function defined in ~\public\Get-AudioCodesIniAsObjects.ps1. Gets ini from
     # devices and returns one object per ini line containing deviceIP + full line
@@ -103,8 +103,8 @@ function Get-AudiocodesATATrunkGroupAssignments {
                     }
 
                     # if filter passed, filter
-                    if ($phoneRegex) {
-                        if ($phoneNumExtracted -match $phoneRegex) {
+                    if ($phoneFilter) {
+                        if ($phoneNumExtracted -match "\$phoneFilter\d{4}") {
                             $trunkGroupOutput.Add($stdOut)
                         }
                     # if not, return all trunk group rows as output
