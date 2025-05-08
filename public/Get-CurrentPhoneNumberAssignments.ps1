@@ -86,7 +86,7 @@ function Get-CurrentPhoneNumberAssignments {
         $null = $existingTns.Add($entry.telephoneNumber)
     }
     #$dupes = [System.Collections.Generic.List[object]]::new()
-    $analogNumbers = Get-AudiocodesATATrunkGroupAssignments -phoneRegex "+1928523"
+    $analogNumbers = Get-AudiocodesATATrunkGroupAssignments -phoneFilter "+1928523"
     foreach ($analog in $analogNumbers) {
         $tn = $analooneNumber
         $yesterdayTn = $tnToYesterday["$tn"]
