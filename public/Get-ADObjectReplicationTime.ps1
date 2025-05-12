@@ -1,4 +1,4 @@
-function Get-ObjectReplicationTime {
+function Get-ADObjectReplicationTime {
     [Cmdletbinding()]
     param (
         [Parameter(Mandatory)]
