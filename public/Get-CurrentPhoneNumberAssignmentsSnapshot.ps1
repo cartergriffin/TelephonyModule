@@ -1,8 +1,8 @@
-# requires yesterday's results
-# might need to refactor this to allow for init
-function Get-CurrentPhoneNumberAssignments {
+function Get-CurrentPhoneNumberAssignmentsSnapshot {
+    [CmdletBinding()]
     param(
-        [switch]$singleRecurringOutputCsv
+        [Parameter(DontShow)]
+        [switch]$dev
     )
 
     $config = Get-TelephonyModuleConfig
@@ -11,31 +11,32 @@ function Get-CurrentPhoneNumberAssignments {
     if (-not $checkPath) {
         try {
             mkdir $config.currentPhoneCsvPath
-            mkdir "$outputDirPath\currentPhoneOutput"
         } catch {
             throw "unable to write new dir at $outputDirPath"
             break
         }
     }
+    
+    # if dev, try to get cached m365 info without 60 second call to graph
+    if ($dev) {
+        try {
+            $firstListOfAllPhoneNumberObjects = Get-Content "$env:TEMP\firstPhoneObjList.json" -ErrorAction Stop | ConvertFrom-Json
+            $allPhoneUsers = Get-Content "$env:TEMP\firstUserObjList.json" | ConvertFrom-Json
+        } catch {
+            # running first pass
+            $firstListOfAllPhoneNumberObjects = Get-AllTeamsPhoneNumbersUnattended
+            $allPhoneUsers = Get-AllPhoneUsersUnattendedByPhoneNumber
+            $firstListOfAllPhoneNumberObjects | ConvertTo-Json -depth 5 | out-file "$env:TEMP\firstPhoneObjList.json"
+            $allPhoneUsers | ConvertTo-Json -depth 5 | out-file "$env:TEMP\firstUserObjList.json"
+        }
+        } else {
+            $firstListOfAllPhoneNumberObjects = Get-AllTeamsPhoneNumbersUnattended
+            $allPhoneUsers = Get-AllPhoneUsersUnattendedByPhoneNumber
+        }
 
-    if ($singleRecurringOutputCsv) {
-        $csvPath = "$outputDirPath\currentPhoneOutput\CurrentPhoneNumberAssignments_DoNotModifyOrLeaveOpen.csv"
-    } else {
-        $yesterDayCsvDir = Get-ChildItem -path "$outputDirPath\*.csv"
-        $csvSorted = $yesterDayCsvDir | sort-object -Property LastWriteTime -Descending
-        $csvPath = $csvSorted[0].FullName
-    }
-
-    $yesterDayCsv = Import-Csv -path $csvPath
-
-    # init empty dictionary to enable fast lookup of yesterdayCsv by tn
-    $tnToYesterday = [System.Collections.Generic.Dictionary[string, object]]::new()
-    foreach ($row in $yesterDayCsv) {
-        $tnToYesterday["$($row.telephoneNumber)"] = $row
-    }
-
+<# 
     $firstListOfAllPhoneNumberObjects = Get-AllTeamsPhoneNumbersUnattended
-    $allPhoneUsers = Get-AllPhoneUsersUnattendedByPhoneNumber
+    $allPhoneUsers = Get-AllPhoneUsersUnattendedByPhoneNumber #>
 
     $formatNumbers = $null
     $sortedNumbers = $null
@@ -52,7 +53,6 @@ function Get-CurrentPhoneNumberAssignments {
 
     foreach ($number in $firstListOfAllPhoneNumberObjects) {
         $tn = $number.telephoneNumber
-        $yesterdayTn = $tnToYesterday["$tn"]
         $targetId = $number.assignmentTargetId
         $user = $userIdToUpn["$targetId"]
         if ($number.assignmentStatus -eq 'Unassigned') {
@@ -65,8 +65,6 @@ function Get-CurrentPhoneNumberAssignments {
             [PSCustomObject]@{
                 telephoneNumber           = $tn
                 isAvailable               = $isAvailable
-                assignmentModifiedDate    = $yesterdayTn.assignmentModifiedDate
-                daysUnassigned            = $null
                 sourceSystem              = 'Teams'
                 teamsNumberType           = $number.numberType
                 assignmentStatus          = $number.assignmentStatus
@@ -88,16 +86,13 @@ function Get-CurrentPhoneNumberAssignments {
     #$dupes = [System.Collections.Generic.List[object]]::new()
     $analogNumbers = Get-AudiocodesATATrunkGroupAssignments -phoneFilter "+1928523"
     foreach ($analog in $analogNumbers) {
-        $tn = $analog.TelephoneNumber
-        $yesterdayTn = $tnToYesterday["$tn"]
+        $tn =  $analog.TelephoneNumber
         # temp measure to avoid duplication before remediating ~40 dupes
         if (-not $existingTns.Contains($tn)) {
             $formatNumbers.Add(
                 [PSCustomObject]@{
                     telephoneNumber            = $tn
                     isAvailable                = $false
-                    assignmentModifiedDate     = $yesterdayTn.assignmentModifiedDate
-                    daysUnassigned             = $null
                     sourceSystem               = 'Analog'
                     teamsNumberType            = $null
                     assignmentStatus           = "Assigned"
@@ -119,41 +114,9 @@ function Get-CurrentPhoneNumberAssignments {
     }
 
     $fileDate = Get-Date -Format "MMddyyyy_hhmmss"
-    $date = Get-Date
 
     $sortedNumbers = $formatNumbers | Sort-Object -Property telephoneNumber
-    $changes = [System.Collections.Generic.List[object]]::new()
-    foreach ($todayNum in $sortedNumbers) {
-        $todayTn = $todayNum.telephoneNumber
-        $yesterdayTn = $tnToYesterday["$todayTn"]
+    $sortedNumbers | export-csv -Path "$outputDirPath\CurrentPhoneNumberAssignments_$filedate.csv" -NoTypeInformation
 
-        # if unassigned since yesterday, set assignmentModifiedDate
-        
-        if (-not $yesterdayTn -or -not $yesterdayTn.assignmentModifiedDate) {
-            # brand new number or first time seeing it
-            $todayNum.assignmentModifiedDate = $date
-            $changes.Add($todayNum)
-        }
-        elseif ([bool]$todayNum.isAvailable -ne [bool]::Parse($yesterdayTn.isAvailable)) {
-            # state changed: update timestamp
-            $todayNum.assignmentModifiedDate = $date
-            $changes.Add($todayNum)
-        }
-        # no change, preserve previous assignmentModifiedDate
-        else {$todayNum.assignmentModifiedDate = $yesterdayTn.assignmentModifiedDate}
-        
-        if($todayNum.isAvailable){
-            $todayNum.daysUnassigned = [math]::Floor(($date - [datetime]$todayNum.assignmentModifiedDate).TotalDays)
-        }
-    }
-    $changes | Export-Csv -Append -Path "$outputDirPath\Phone_Assignment_Changelog.csv"
-    
-    if ($singleRecurringOutputCsv) {
-        $sortedNumbers | export-csv -Path "$outputDirPath\currentPhoneOutput\CurrentPhoneNumberAssignments_DoNotModifyOrLeaveOpen.csv" -NoTypeInformation
-        $sortedNumbers | export-csv -Path "$outputDirPath\CurrentPhoneNumberAssignments_$filedate.csv" -NoTypeInformation
-    } else {
-        $sortedNumbers | export-csv -Path "$outputDirPath\CurrentPhoneNumberAssignments_$filedate.csv" -NoTypeInformation
-    }
-    
     return $sortedNumbers
 }
