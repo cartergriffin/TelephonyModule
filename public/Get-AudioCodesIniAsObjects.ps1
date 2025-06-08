@@ -16,8 +16,9 @@ function Get-AudiocodesIniAsObjects {
     
     $scriptBlock = {
         $url = "http://$_/api/v1/files/ini"
-
+        Write-Host "Debugging $_"
         $response = Invoke-WebRequest -Method GET -Uri $url -Headers $using:headers
+        Write-Host "success $_"
         $content = [System.Text.Encoding]::ASCII.GetString($response.Content)
         $lines = $content.Split("`n")
 
