@@ -63,18 +63,18 @@ function Get-CurrentPhoneNumberAssignmentsSnapshot {
 
         $formatNumbers.Add(
             [PSCustomObject]@{
-                telephoneNumber           = $tn
-                isAvailable               = $isAvailable
-                sourceSystem              = 'Teams'
-                teamsNumberType           = $number.numberType
-                assignmentStatus          = $number.assignmentStatus
-                assignedUserObjectId      = $targetId
-                assignedUserPrincipalName = $user.UPN
-                assignedUserAccountType   = $user.AccountType
-                assignmentCategory        = $number.assignmentCategory
-                analogDeviceIP            = $null
-                analogFullLine            = $null
-                city                      = $number.city
+                u_telephoneNumber           = $tn
+                u_isAvailable               = $isAvailable
+                u_sourceSystem              = 'Teams'
+                u_teamsNumberType           = $number.numberType
+                u_assignmentStatus          = $number.assignmentStatus
+                u_assignedUserObjectId      = $targetId
+                u_assignedUserPrincipalName = $user.UPN
+                u_assignedUserAccountType   = $user.AccountType
+                u_assignmentCategory        = $number.assignmentCategory
+                u_analogDeviceIP            = $null
+                u_analogFullLine            = $null
+                u_city                      = $number.city
             }
         )
     }
@@ -91,18 +91,18 @@ function Get-CurrentPhoneNumberAssignmentsSnapshot {
         if (-not $existingTns.Contains($tn)) {
             $formatNumbers.Add(
                 [PSCustomObject]@{
-                    telephoneNumber            = $tn
-                    isAvailable                = $false
-                    sourceSystem               = 'Analog'
-                    teamsNumberType            = $null
-                    assignmentStatus           = "Assigned"
-                    assignedUserObjectId       = $null
-                    assignedUserPrincipalName  = $null
-                    assignedUserAccountType    = $null
-                    assignmentCategory         = $null
-                    analogDeviceIP             = $analog.DeviceIP
-                    analogFullLine             = $analog.FullLine
-                    city                       = $null
+                    u_telephoneNumber            = $tn
+                    u_isAvailable                = $false
+                    u_sourceSystem               = 'Analog'
+                    u_teamsNumberType            = $null
+                    u_assignmentStatus           = "Assigned"
+                    u_assignedUserObjectId       = $null
+                    u_assignedUserPrincipalName  = $null
+                    u_assignedUserAccountType    = $null
+                    u_assignmentCategory         = $null
+                    u_analogDeviceIP             = $analog.DeviceIP
+                    u_analogFullLine             = $analog.FullLine
+                    u_city                       = $null
                 }
             )
         }<#  
